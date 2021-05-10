@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+
+import os
+import argparse
+import configparser
+from astropy.table import Table
+
+description = "Compile list of commands to reduce the data"
+
+parser = argparse.ArgumentParser(description=description)
+
+parser.add_argument('--db', dest='database', type=str, required=True,
+                    help="Database file")
+parser.add_argument('-o', '--outdir', type=str, required=True,
+                    help="Directory where to store the output")
+
+# Trace arguments
+h_str = "[trace]: Separation in columns for the reference fiber positions"
+parser.add_argument('--trace_stepsize', type=int, default=60,
+                    help=h_str)
+
+h_str = "[trace]: Nbr. of columns to median combine at each ref. col. position"
+parser.add_argument('--trace_colscombine', type=int, default=35, help=h_str)
+
+h_str = "[trace]: Degree of polynomia to fit for traces"
+parser.add_argument('--trace_degree', type=int, default=4, help=h_str)
+
+
+args = parser.parse_args()
+
+
+def basic_steps(df):
+    command = "/usr/bin/env m2fs-runbasic --id {} --rawdir {} -o {}"
+
+    output = []
+    for i in range(len(df)):
+        row = df.iloc[i]
+        output.append(command.format(row.id, row.dir, args.outdir))
+    output = '\n'.join(output)
+    return output
+
+
+def tracing_steps(df):
+    command = ("/usr/bin/env m2fs-trace --fname {} --reduxdir {} "
+               "--stepsize {} --colscombine {} --degree {}")
+    output = []
+    for i in range(len(df)):
+        row = df.iloc[i]
+        output.append(command.format(row.id+"btgmc.fits", args.outdir,
+                                     args.trace_stepsize,
+                                     args.trace_colscombine, 
+                                     args.trace_degree))
+    output = '\n'.join(output)
+    return output
+
+
+if __name__ == "__main__":
+    df = Table.read(args.database,
+                    format="ascii.fixed_width_two_line").to_pandas()
+    df = df.query('use == "[x]"')
+
+    script_content = []
+    # The basic commands are run on all files
+    basic_commands = basic_steps(df)
+    script_content.append("# Running the Basic Steps")
+    script_content.append("# =======================")
+    script_content.append(basic_commands)
+    script_content.append("")
+
+    # Determine traces
+    tracing_commands = tracing_steps(df)
+    script_content.append("# Tracing fiber positions")
+    script_content.append("# =======================")
+    script_content.append(tracing_commands)
+    script_content.append("")
+
+
+    script_content = '\n'.join(script_content)
+    with open(args.database.replace('db', 'sh'), 'w') as script:
+        script.write(script_content)
+    os.chmod(args.database.replace('db', 'sh'), 0o777)

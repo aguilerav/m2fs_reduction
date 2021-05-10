@@ -1,0 +1,149 @@
+#!/usr/bin/env python
+
+import os
+import glob
+import argparse
+import io
+from contextlib import contextmanager
+from astropy.io import fits
+from astropy.table import Table
+import numpy as np
+import pandas as pd
+
+parser = argparse.ArgumentParser(
+                            description="Build database pipelines")
+
+parser.add_argument(
+        '-o', '--object', dest='obj', type=str, required=True,
+        help="The object to be selected and for which to build the pipelines")
+
+parser.add_argument(
+        '-c', '--config', type=str, required=True,
+        help="The configuration to be selected")
+
+parser.add_argument('-d', '--database', type=str,
+                    help="Name of database file name to write")
+
+parser.add_argument(
+                'dirlist', metavar='dirlist', type=str, nargs='+',
+                help="List of directories in which to search for fits files.")
+
+parser.add_argument('-v', '--verbose', action='store_true',
+                    help="Report the input values to this command")
+
+args = parser.parse_args()
+
+
+@contextmanager
+def cd(new_temporary_dir):
+    old_dir = os.getcwd()
+    try:
+        os.chdir(new_temporary_dir)
+        yield
+    finally:
+        os.chdir(old_dir)
+
+
+def select_files(directory, obj, config):
+    selected_files = []
+    directory = os.path.abspath(directory)
+    with cd(directory):
+        # print("Im in {}".format(os.getcwd()))
+        fits_files = glob.glob("*c1.fits")
+        for f in fits_files:
+            if not os.path.isfile(f):
+                continue
+            tmp_hdr = fits.getheader(f)
+            if tmp_hdr['OBJECT'] is not None:
+                if obj in tmp_hdr['OBJECT'] and config in tmp_hdr['CONFIGFL']:
+                    fname = f.replace('c1.fits', '')
+                    selected_files.append(os.path.join(directory, fname))
+    return selected_files
+
+
+def determine_type(base_name):
+    fits_type = 'Unknown'
+    fname = base_name + 'c1.fits'
+    tmp_hdr = fits.getheader(fname)
+
+    # Object type
+    # Science should have all lamps off
+    if (tmp_hdr['FF-THNE'] == 0 and
+        tmp_hdr['FF-THAR'] == 0 and
+        tmp_hdr['FF-NE'] == 0 and
+        tmp_hdr['FF-HGAR'] == 0 and
+        tmp_hdr['FF-XE'] == 0 and
+        tmp_hdr['FF-QRTZ'] == 0 and
+        tmp_hdr['LORES'] == 'Off' and
+        tmp_hdr['LED-UV'] == 0 and
+        tmp_hdr['LED-BL'] == 0 and
+        tmp_hdr['LED-VI'] == 0 and
+        tmp_hdr['LED-NR'] == 0 and
+        tmp_hdr['LED-FR'] == 0 and
+        tmp_hdr['LED-IR'] == 0 and
+        tmp_hdr['LEDS'] == 'Off'):
+        fits_type = 'Science'
+
+    # ThAr lamps
+    if (tmp_hdr['FF-THNE'] == 0 and
+        tmp_hdr['FF-THAR'] > 0 and
+        tmp_hdr['FF-NE'] == 0 and
+        tmp_hdr['FF-HGAR'] == 0 and
+        tmp_hdr['FF-XE'] == 0 and
+        tmp_hdr['FF-QRTZ'] == 0 and
+        tmp_hdr['LORES'] == 'Off' and
+        tmp_hdr['LED-UV'] == 0 and
+        tmp_hdr['LED-BL'] == 0 and
+        tmp_hdr['LED-VI'] == 0 and
+        tmp_hdr['LED-NR'] == 0 and
+        tmp_hdr['LED-FR'] == 0 and
+        tmp_hdr['LED-IR'] == 0 and
+        tmp_hdr['LEDS'] == 'Off'):
+        fits_type = 'ThAr'
+
+    return fits_type
+
+
+def compile_df(files_list):
+    # Create the pandas df
+    df = pd.DataFrame(np.nan, index=range(len(selected_files)),
+                      columns=['use', 'dir', 'id', 'exptime', 'type'])
+    for i, d in enumerate(selected_files):
+        directory, ID = os.path.split(d)
+        fits_type = determine_type(d)
+        exptime = fits.getheader(d+'c1.fits')['EXPTIME']
+        df.loc[i] = ['[x]', directory, ID, exptime, fits_type]
+    return df
+
+
+if __name__ == "__main__":
+    if args.verbose:
+        print("Searching the following directories:")
+        for d in args.dirlist:
+            print("- {}".format(os.path.abspath(d)))
+        print("")
+
+        print("Selecting object : {}".format(args.obj))
+        print("and plate config : {}".format(args.config))
+        print("")
+
+    selected_files = []
+    for d in args.dirlist:
+        selected_files += select_files(d, args.obj, args.config)
+    selected_files.sort()
+
+    if len(selected_files) > 0:
+        df = compile_df(selected_files)
+
+    table = Table.from_pandas(df)
+
+    print("This is what I found:")
+    print("=====================")
+    print("")
+    fh = io.StringIO()
+    table.write(fh, format='ascii.fixed_width_two_line', overwrite=True)
+    print(fh.getvalue())
+
+    if args.database:
+        table.write(args.database, format='ascii.fixed_width_two_line',
+                    overwrite=True)
