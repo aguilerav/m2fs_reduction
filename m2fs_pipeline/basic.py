@@ -3,8 +3,7 @@ import re
 import numpy as np
 from astropy.io import fits
 
-from . import cosmics
-
+from m2fsredux import cosmics
 
 def str_slice_to_corners(str_section):
     """
@@ -112,7 +111,7 @@ def merge(fits_ext1, fits_ext2, fits_ext3, fits_ext4):
     return output
 
 
-def grow_mask(arr, ngrow=1):
+def grow_mask(arr, ngrow=2):
     nrows, ncols = arr.shape
 
     rows, cols = np.where(arr == 1)
@@ -128,7 +127,7 @@ def grow_mask(arr, ngrow=1):
     return arr
 
 
-def cosray(fits_ext, ngrow=1, maxiter=4):
+def cosray(fits_ext, ngrow=2, maxiter=4):
     rdnoise = fits_ext[0].header['ENOISE']
     img = fits_ext[0].data
     err = fits_ext[1].data
@@ -168,17 +167,16 @@ def dark_correction(fits_science, fits_dark):
     return output
 
 
-def perform_basic_steps(filename):
+def gain_bias_trim_merge(filename):
     """
-    - Bias subtraction, overscan columnwise.
+    - Gain correction
+    - Bias substraction, overscan columnwise
     - Trims overscan region
-    - Gain correct
-    - Merge
-    - Cosmic rays rejection
+    - Rotate and merge
 
     filename should be the base filename, e.g., '<path>/b0001'.
-    
-    This should be used with lamps and twilights
+
+    This is for all the files except dark
     """
     c1 = fits.open(filename + 'c1.fits')
     c2 = fits.open(filename + 'c2.fits')
@@ -186,121 +184,135 @@ def perform_basic_steps(filename):
     c4 = fits.open(filename + 'c4.fits')
     try:
         input_fits = [c1[0], c2[0], c3[0], c4[0]]
-
         for i, c in enumerate(input_fits):
             print("Working in frame c{}".format(i+1))
+            print("- Gain correcting")
+            gain_correct(c)
             print("- Removing bias")
             debias(c)
             print("- Trimming overscan")
             trim(c)
-            print("- Gain correcting")
-            gain_correct(c)
             print("")
         print("- Stitching frames together")
         output = merge(*input_fits)
-        print("- Removing cosmic rays")
-        cosray(output)
     finally:
         c1.close()
         c2.close()
         c3.close()
         c4.close()
-
+    
     return output
 
 
-def basic_dark_steps(darkname):
+def gain_merge(darkname):
     """
-    Perform basic steps to create dark
-    - Gain correct
-    - Cosmic rays rejection
+    - Gain correction
+    - Rotate and merge
 
-    filename should be the base filename, e.g., '<path>/bdark'.
-    
-    This should be used to create dark (before basic steps to science)
+    darkname should be the base filename, e.g., '<path>/bdark'.
+
+    This is for darks only
     """
-    d1 = fits.open(darkname + 'c1.fits')
-    d2 = fits.open(darkname + 'c2.fits')
-    d3 = fits.open(darkname + 'c3.fits')
-    d4 = fits.open(darkname + 'c4.fits')
-    
+    c1 = fits.open(darkname + 'c1.fits')
+    c2 = fits.open(darkname + 'c2.fits')
+    c3 = fits.open(darkname + 'c3.fits')
+    c4 = fits.open(darkname + 'c4.fits')
     try:
-        input_darks = [d1[0], d2[0], d3[0], d4[0]]
-        for i, c in enumerate(input_darks):
-            print("Working in dark frame c{}".format(i+1))
+        input_fits = [c1[0], c2[0], c3[0], c4[0]]
+        for i, c in enumerate(input_fits):
+            print("Working in frame c{}".format(i+1))
             print("- Gain correcting")
             gain_correct(c)
             print("")
-        print("- Stitching dark frames together")
-        output_dark = merge(*input_darks)
+        print("- Stitching frames together")
+        output = merge(*input_fits)
     finally:
-        d1.close()
-        d2.close()
-        d3.close()
-        d4.close()
+        c1.close()
+        c2.close()
+        c3.close()
+        c4.close()
     
-    return output_dark
+    return output
 
 
-def basic_steps(science_filename, dark_filename):
+def basic_dark(dark, output_dir):
     """
-    - Bias subtraction, overscan columnwise.
-    - Trims overscan region
-    - Gain correct
+    Basic steps reduction for dark file.
+    - Gain
+    - Merge
+    
+    It saves the resulting fits in output_dir.
+
+    Parameters
+    ----------
+    dark : str
+        dark base filename
+    output_dir : str
+        output directory
+    Returns
+    -------
+    None
+    """
+    output_dark = gain_merge(dark)
+    darkname = os.path.basename(dark)
+    output_dark.writeto(os.path.join(output_dir, darkname + '.fits'),
+                        overwrite=True)
+
+def basic_steps(fits_fname, dark_fname, ngrow=2):
+    """
+    Basic steps reduction for the science observations.
+    - Gain
+    - Bias substraction
+    - Trim
     - Merge
     - Dark correction
     - Cosmic rays rejection
 
-    science_filename should be the base filename, e.g., '<path>/b0001'.
-    dark_filename should be the base filename, e.g., '<path>/dark'.
-    
-    This should be the first step for sciences
+    Parameters
+    ----------
+    science_fname : str
+        science base filename
+    dark_fname : str
+        dark fits name, e.g. <path>/bdark.fits
+    output_dir : str
+        output directory
+    Returns
+    -------
+    HDUList
     """
-    c1 = fits.open(science_filename + 'c1.fits')
-    c2 = fits.open(science_filename + 'c2.fits')
-    c3 = fits.open(science_filename + 'c3.fits')
-    c4 = fits.open(science_filename + 'c4.fits')
+    dark_fits = fits.open(dark_fname)
+    output = gain_bias_trim_merge(fits_fname)
     try:
-        input_fits = [c1[0], c2[0], c3[0], c4[0]]
-
-        for i, c in enumerate(input_fits):
-            print("Working in frame c{}".format(i+1))
-            print("- Removing bias")
-            debias(c)
-            print("- Trimming overscan")
-            trim(c)
-            print("- Gain correcting")
-            gain_correct(c)
-            print("")
-        print("- Stitching frames together")
-        output = merge(*input_fits)
-    finally:
-        c1.close()
-        c2.close()
-        c3.close()
-        c4.close()
-
-    try:
-        dark = fits.open(dark_filename + '.fits')
         print("- Dark correcting")
-        output = dark_correction(output, dark)
+        output = dark_correction(output, dark_fits)
         print("- Removing cosmic rays")
-        cosray(output)
+        cosray(output, ngrow=ngrow)
     finally:
-        dark.close()
+        dark_fits.close()
 
     return output
 
 
-def basic(sciences, dark_file, output_dir):
-    output_dark = basic_dark_steps(dark_file)
-    dark_basename = os.path.basename(dark_file)
-    darkname = os.path.join(output_dir, dark_basename)
-    output_dark.writeto(darkname + '.fits', overwrite=True)
+def basic(sciences, twilights, lamps, dark, output_dir):
+    basic_dark(dark, output_dir)
+    darkname = os.path.join(output_dir, os.path.basename(dark) + '.fits')
     for i in range(len(sciences)):
-        output = basic_steps(sciences[i], darkname)
-        basename = os.path.basename(sciences[i])
-        science_name = os.path.join(output_dir, basename + 'btgmdc.fits')
-        output.writeto(science_name, overwrite=True)
-
-
+        science_name = os.path.basename(sciences[i])
+        output_science = basic_steps(sciences[i], darkname)
+        output_science.writeto(os.path.join(output_dir,
+                                            science_name + 'b.fits'),
+                               overwrite=True)
+    
+    for i in range(len(twilights)):
+        twilight_name = os.path.basename(twilights[i])
+        output_twilight = basic_steps(twilights[i], darkname)
+        output_twilight.writeto(os.path.join(output_dir,
+                                             twilight_name + 'b.fits'),
+                                overwrite=True)
+    
+    for i in range(len(lamps)):
+        lamp_name = os.path.basename(lamps[i])
+        output_lamp = basic_steps(lamps[i], darkname)
+        output_lamp.writeto(os.path.join(output_dir,
+                                         lamp_name + 'b.fits'),
+                            overwrite=True)
