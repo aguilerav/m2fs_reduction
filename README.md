@@ -12,4 +12,11 @@ Under development
 
 Code adapted from G. Blanc
 
+# How to
+
+Run the following command in shell
+
+python setup.py develop
+
+
 

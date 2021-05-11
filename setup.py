@@ -10,7 +10,7 @@ with open('LICENSE') as f:
     license = f.read()
 
 setup(
-    name='m2fsredux',
+    name='m2fs_pipeline',
     version='0.0.1',
     description='Pipeline to reduce M2FS data',
     long_description=readme,
