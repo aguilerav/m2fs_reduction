@@ -5,12 +5,14 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 
 from m2fs_pipeline import basic
+from m2fs_pipeline import combine
 
 _scripts_dir = os.path.dirname(os.path.realpath(__file__))
 _assets_dir = os.path.dirname(_scripts_dir)
 _raw_images_dir = os.path.join(_assets_dir, 'raw_images')
 _output_dir = os.path.join(_assets_dir, 'temp_products')
-assets_dir = os.path.join(os.path.dirname(os.path.dirname(_assets_dir)), 'assets')
+assets_dir = os.path.join(os.path.dirname(os.path.dirname(_assets_dir)),
+                          'assets')
 
 
 #INPUTS
@@ -25,7 +27,8 @@ twilights = ['163', '164', '165', '166', '167', '168', '169', '170', '171',
              '172', '173']
 
 #FUNCTIONS
-do_basic = True
+do_basic = False
+do_combine_led = True
 
 
 #-----------------------REDUCTION-----------------------------
@@ -76,3 +79,28 @@ if do_basic:
     basic.basic(raw_sciences, raw_twilights,
                 raw_led_lamp+raw_nehg_lamp+raw_thar_lamp, dark, _output_dir)
     print('------------------FINISHED BIAS/TRIM/GAIN--------------------')
+sciences_b = ['']*len(sciences)
+for i in range(len(sciences)):
+    sciences_b[i] = os.path.join(_output_dir, sciences[i] + 'b.fits')
+
+led_lamps_b = ['']*len(led_lamps)
+for i in range(len(led_lamps)):
+    led_lamps_b[i] = os.path.join(_output_dir, led_lamps[i] + 'b.fits')
+
+twilights_b = ['']*len(twilights)
+for i in range(len(twilights)):
+    twilights_b[i] = os.path.join(_output_dir, twilights[i] + 'b.fits')
+
+nehg_lamps_b = ['']*len(nehg_lamps)
+for i in range(len(nehg_lamps)):
+    nehg_lamps_b[i] = os.path.join(_output_dir, nehg_lamps[i] + 'b.fits')
+
+thar_lamps_b = ['']*len(thar_lamps)
+for i in range(len(thar_lamps)):
+    thar_lamps_b[i] = os.path.join(_output_dir, thar_lamps[i] + 'b.fits')
+
+
+if do_combine_led:
+    combine.combine(led_lamps_b, led_lamp, _output_dir)
+    print('-----------------FINISHED LED LAMPS COMBINATION-------------------')
+
