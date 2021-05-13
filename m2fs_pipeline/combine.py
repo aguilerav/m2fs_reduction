@@ -87,8 +87,9 @@ def combine(files, filename, output_dir, exptime=0, thresh=30000):
     
     #Create output
     hdr['EXPTIME'] = exptime
-    msg = 'Sciences combined'
+    msg = 'combination: observations combined'
     hdr['HISTORY'] = msg
+    hdr['FILENAME'] = filename
     data_fits = fits.PrimaryHDU(data, header=hdr)
     error_fits = fits.ImageHDU(error)
     combine_fits = fits.HDUList([data_fits, error_fits])

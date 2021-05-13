@@ -6,6 +6,8 @@ from astropy.io import fits
 
 from m2fs_pipeline import basic
 from m2fs_pipeline import combine
+from m2fs_pipeline import tracer
+from m2fs_pipeline import fibermap
 
 _scripts_dir = os.path.dirname(os.path.realpath(__file__))
 _assets_dir = os.path.dirname(_scripts_dir)
@@ -28,8 +30,8 @@ twilights = ['163', '164', '165', '166', '167', '168', '169', '170', '171',
 
 #FUNCTIONS
 do_basic = False
-do_combine_led = True
-
+do_combine_led = False
+do_trace = True
 
 #-----------------------REDUCTION-----------------------------
 raw_sciences = ['']*len(sciences)
@@ -78,7 +80,7 @@ led_lamp = 'LED_' + obj + '_'  + spectro
 if do_basic:
     basic.basic(raw_sciences, raw_twilights,
                 raw_led_lamp+raw_nehg_lamp+raw_thar_lamp, dark, _output_dir)
-    print('------------------FINISHED BIAS/TRIM/GAIN--------------------')
+    print('--------------------FINISHED BIAS/TRIM/GAIN----------------------')
 sciences_b = ['']*len(sciences)
 for i in range(len(sciences)):
     sciences_b[i] = os.path.join(_output_dir, sciences[i] + 'b.fits')
@@ -104,3 +106,10 @@ if do_combine_led:
     combine.combine(led_lamps_b, led_lamp, _output_dir)
     print('-----------------FINISHED LED LAMPS COMBINATION-------------------')
 
+if do_trace:
+    tracer.trace(os.path.join(_output_dir, led_lamp + '.fits'), _output_dir,
+                 step_size=40, bin_width=31, degree=4)
+    tracing_coeffs = os.path.join(_output_dir, led_lamp + '_trace_coeffs.out')
+    fibermap.fill_fibers(tracing_coeffs)
+    print('------------------------FINISHED TRACING--------------------------')
+tracing_fname = os.path.join(_output_dir, led_lamp + '_trace_coeffs_full.out')

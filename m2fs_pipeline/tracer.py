@@ -159,7 +159,6 @@ def peak_map(arr, ref_col_distance=60, bin_width=35):
 def trace(fits_fname, output_dir, step_size=40,
           bin_width=35, degree=4):
     data = fits.getdata(fits_fname)
-    nrows, ncols = data.shape
 
     basename = os.path.basename(fits_fname).replace('.fits', '')
 
