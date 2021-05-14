@@ -18,8 +18,8 @@ def closest_detection(array1, array2):
 
 def fill_fibers(tracename, total_fibers=128):
     """
-    FILL NOT FOUND FIBERS WITH NANS TO KEEP TRACK OF THEM
-    This will edit the trace file. It fill with Nans the non-detected fibers
+    Fill not found fibers with Nans to keep track of them.
+    This will edit the trace file. It fills with Nans the non-detected fibers
     The output is a tracefile with 128 rows (or total_fibers rows).
     IMPORTANT - This does not work if the first fiber is dead! - IMPORTANT
     
