@@ -3,7 +3,6 @@ import sys
 import warnings
 import numpy as np
 import scipy.interpolate as inter
-import matplotlib.pyplot as plt
 from astropy.io import fits
 
 
@@ -76,7 +75,11 @@ def combine(files, filename, output_dir, exptime=0, thresh=30000):
         for j in range(ncols):
             index = np.where((np.isfinite(info[:, i, j])==True) &
                               (np.isfinite(info_err[:, i, j])==True))
-            data[i, j] = np.nanmedian(info[:, i, j][index])
+            non_missing = np.count_nonzero(~np.isnan(info[:, i, j]))
+            if non_missing==0:
+                data[i, j] = np.nan
+            else:
+                data[i, j] = np.nanmedian(info[:, i, j][index])
             clear = np.count_nonzero(~np.isnan(info_err[:, i, j]))
             if clear==0:
                 error[i, j] = np.nan
@@ -239,111 +242,3 @@ def fit_into_wave_grid(sciences, wave_inter, output_dir):
         name_fits = science_name + 'w.fits'
         fits_file.writeto(os.path.join(output_dir, name_fits), overwrite=True)
 
-
-"""
-def merge(sciences, output_dir, spectro='b', obj='C'):
-    #First file
-    fits_file = fits.open(sciences[0])
-    data1 = fits_file[0].data
-    err1 = fits_file[1].data
-    wave1 = fits_file[2].data
-    hdr1 = fits_file[0].header
-    fits_file.close()
-
-
-    wave_all = np.zeros((nfib, ncols*len(sciences)))
-    data_all = np.zeros((nfib, ncols*len(sciences)))
-    error_all = np.zeros((nfib, ncols*len(sciences)))
-    frame_all = np.zeros((nfib, ncols*len(sciences)))
-    wave_inter = np.copy(wave1)
-    data_inter = np.zeros((nfib, ncols))
-    error_inter = np.zeros((nfib, ncols))
-    frame_inter = np.zeros((nfib, ncols))
-    datapoints = np.zeros((nfib, ncols))
-
-    for fiber in range(nfib):
-        if (len(wave_inter[fiber, :][~np.isnan(wave_inter[fiber, :])])==0):
-            for k in range(len(sciences)):
-                auxwave = fits.open(sciences[k])[2].data[fiber, :]
-                if (len(auxwave[~np.isnan(auxwave)]) > 0):
-                    wave_inter[fiber, :] = auxwave
-                    break
-    
-    for i in range(len(sciences)):
-        sys.stdout.write('\rInterpolating for science: ' + str(i+1) + '/' +
-                         str(len(sciences)))
-        sys.stdout.flush()     
-        fits_file = fits.open(sciences[i])
-        sci1d = fits_file[0].data
-        scierr1d = fits_file[1].data
-        wave1d = fits_file[2].data
-
-        for fiber in range(nfib):
-            wave_all[fiber, ncols*i:ncols*(i+1)] = wave1d[fiber, :]
-            data_all[fiber, ncols*i:ncols*(i+1)] = sci1d[fiber, :]
-            error_all[fiber, ncols*i:ncols*(i+1)] = scierr1d[fiber, :]
-            frame_all[fiber, ncols*i:ncols*(i+1)] = i+1
-
-        for fiber in range(nfib):
-            f = inter.interp1d(wave1d[fiber, :], sci1d[fiber, :],
-                               bounds_error=False)
-            for k in range(len(data_inter[fiber, :])):
-                if (np.isfinite(f(wave_inter[fiber, k]))==True):
-                    data_inter[fiber, k] = data_inter[fiber, k] + f(wave_inter[fiber, k])
-                    datapoints[fiber, k] = datapoints[fiber, k] + 1
-    print('')
-    nonzero = np.where(datapoints!=0)
-    zero = np.where(datapoints==0)
-    data_inter[nonzero] = data_inter[nonzero]/datapoints[nonzero]
-    data_inter[zero] = np.nan
-
-    for fiber in range(nfib):
-        sortedind = np.argsort(wave_all[fiber, :])
-        wave_all[fiber, :] = wave_all[fiber, :][sortedind]
-        data_all[fiber, :] = data_all[fiber, :][sortedind]
-        error_all[fiber, :] = error_all[fiber, :][sortedind]
-        frame_all[fiber, :] = frame_all[fiber, :][sortedind]
-    
-    msg = 'Merged science 1D'
-    hdr1['HISTORY'] = msg
-    data_fits = fits.PrimaryHDU(data_all, header=hdr1)
-    error_fits = fits.ImageHDU(error_all)
-    wave_fits = fits.ImageHDU(wave_all)
-    frame_fits = fits.ImageHDU(frame_all)
-    combine_fits = fits.HDUList([data_fits, error_fits, wave_fits, frame_fits])
-    name_fits = 'GOODS_' + obj + '_' + spectro + '_merged.fits'
-    combine_fits.writeto(os.path.join(output_dir, name_fits), overwrite=True)
-
-    for fiber in range(nfib):
-        sys.stdout.write('\rCreating text for fiber: ' + str(fiber))
-        sys.stdout.flush()
-
-        specfile = 'GOODS_' + obj + '_' + spectro + '_' + str(fiber) + '_spectrum.dat'
-        specname = os.path.join(output_dir, specfile)
-        lun = open(specname, 'w')
-        lun.write('#Every frame spectrum' + '\n')
-        lun.write('#Wavelength [\AA]' + '\t' + 'F_lda [ergs/s/cm^2/\AA]' +
-                  '\t' + 'Error [ergs/s/cm^2/\AA]' + '\t' + 'Frame' + '\n')
-        for k in range(len(wave_all[fiber, :])):
-            lun.write(str(wave_all[fiber, k]) + '\t' +
-                      str(data_all[fiber, k]) + '\t' +
-                      str(error_all[fiber, k]) + '\t' +
-                      str(frame_all[fiber, k]) + '\n')
-        lun.write('\n')
-        lun.close()
-
-        interfile = 'GOODS_' + obj + '_' + spectro + '_' + str(fiber) + '_interpolated.dat'
-        intername = os.path.join(output_dir, interfile)
-        lun = open(intername, 'w')
-        lun.write('# Interpolated spectrum' + '\n')
-        lun.write('#Wavelength [\AA]' + '\t' + 'F_lda [ergs/s/cm^2/\AA]' +
-                  '\t' + 'Error [ergs/s/cm^2/\AA]' + '\t' + 'Frame' + '\n')
-        for k in range(len(wave_inter[fiber, :])):
-            lun.write(str(wave_inter[fiber, k]) + '\t' +
-                      str(data_inter[fiber, k]) + '\t' +
-                      str(error_inter[fiber, k]) + '\t' +
-                      str(frame_inter[fiber, k]) + '\n')
-        lun.close()
-    print('')
-
-"""

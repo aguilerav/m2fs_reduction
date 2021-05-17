@@ -3,7 +3,7 @@ import re
 import numpy as np
 from astropy.io import fits
 
-from m2fsredux import cosmics
+from m2fs_pipeline import cosmics
 
 def str_slice_to_corners(str_section):
     """
