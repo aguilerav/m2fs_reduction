@@ -66,13 +66,13 @@ def extract1D(data_array, tracefile, nfiber, error_array = 'error',
                 spec1d[col] = np.nan
         
         elif(method == 'mean'):
-            if (ngood >= 0.75*yaper):
+            if (ngood == len(flux)):
                 spec1d[col] = np.nanmean(flux[sel])
             else:
                 spec1d[col] = np.nan
 
         elif(method == 'biweight'):
-            if (ngood >= 0.75*yaper):
+            if (ngood == len(flux)):
                 spec1d[col] = biweight.biweight_location(flux[sel])
             else:
                 spec1d[col] = np.nan
@@ -82,7 +82,7 @@ def extract1D(data_array, tracefile, nfiber, error_array = 'error',
                 print('Must provide error frame for this method')
             
             eflux=error_array[start_aper:end_aper, col]
-            if (ngood >= 0.75*yaper):
+            if (ngood == len(flux)):
                 spec1d[col] = (np.nansum(flux[sel]/eflux[sel]**2) /
                                np.nansum(1./eflux[sel]**2))
                 err1d[col]= (1.0/np.nansum(eflux[sel]**-2))**.5

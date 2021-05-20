@@ -34,9 +34,9 @@ twilights = ['163', '164', '165', '166', '167', '168', '169', '170', '171',
 do_basic = False
 do_combine_led = False
 do_trace = False
-do_combine_lamps = False
-do_wavecalib = False
-do_combine_twilight = False
+do_combine_lamps = True
+do_wavecalib = True
+do_combine_twilight = True
 do_flat = True
 
 #-----------------------REDUCTION-----------------------------

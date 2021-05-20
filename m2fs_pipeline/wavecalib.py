@@ -10,7 +10,7 @@ from m2fs_pipeline import extract
 from m2fs_pipeline import tracer
 
 
-def get_1Dspectrum(arr, tracing, fiber, apsize=2, method='biweight'):
+def get_1Dspectrum(arr, tracing, fiber, apsize=4, method='biweight'):
     """
     It returns the spectrum of a specific fiber using extract module functions
     """
@@ -21,7 +21,7 @@ def get_1Dspectrum(arr, tracing, fiber, apsize=2, method='biweight'):
         fiber_spectrum = cols*np.nan
     else:
         fiber_spectrum = extract.extract1D(arr, tracing, fiber,
-                                           yaper_each_side=apsize,
+                                           yaper=apsize,
                                            method=method, output=0)
 
     return fiber_spectrum
