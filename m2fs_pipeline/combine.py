@@ -7,10 +7,9 @@ from astropy.io import fits
 
 
 # IMAGE COMBINATION ROUTINE (PIXEL BY PIXEL)
-def combine(files, filename, output_dir, exptime=0, thresh=30000):
+def combine(files, filename, output_dir, exptime=1, thresh=30000):
     """
-    This function takes a list of fits files containing the science to combine
-    and it combines all in just one fits using median. This is done pix by pix.
+    Image combination routine using mean (pixel by pixel).
 
     Parameters
     ----------
@@ -73,18 +72,19 @@ def combine(files, filename, output_dir, exptime=0, thresh=30000):
                          + str(int(100.0*i/(1.0*nrows)))+'%')
         sys.stdout.flush()
         for j in range(ncols):
-            index = np.where((np.isfinite(info[:, i, j])==True) &
-                              (np.isfinite(info_err[:, i, j])==True))
-            non_missing = np.count_nonzero(~np.isnan(info[:, i, j]))
-            if non_missing==0:
+            data_slice = info[:, i, j]
+            err_slice = info_err[:, i, j]
+            non_missing_data = np.count_nonzero(~np.isnan(data_slice))
+            if non_missing_data == 0:
                 data[i, j] = np.nan
             else:
-                data[i, j] = np.nanmedian(info[:, i, j][index])
-            clear = np.count_nonzero(~np.isnan(info_err[:, i, j]))
-            if clear==0:
+                data[i, j] = np.nanmedian(data_slice)
+
+            non_missing_error = np.count_nonzero(~np.isnan(info_err[:, i, j]))
+            if non_missing_error == 0:
                 error[i, j] = np.nan
             else:
-                error[i, j] = np.nansum(info_err[:, i, j][index]**2)**.5/clear**.5
+                error[i, j] = np.nansum(err_slice**2)**.5/non_missing_error**.5
     
     print('')
     

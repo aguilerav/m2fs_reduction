@@ -9,6 +9,7 @@ from m2fs_pipeline import combine
 from m2fs_pipeline import tracer
 from m2fs_pipeline import fibermap
 from m2fs_pipeline import wavecalib
+from m2fs_pipeline import flat
 
 _scripts_dir = os.path.dirname(os.path.realpath(__file__))
 _assets_dir = os.path.dirname(_scripts_dir)
@@ -33,8 +34,10 @@ twilights = ['163', '164', '165', '166', '167', '168', '169', '170', '171',
 do_basic = False
 do_combine_led = False
 do_trace = False
-do_combine_lamps = False
-do_wavecalib = False
+do_combine_lamps = True
+do_wavecalib = True
+do_combine_twilight = True
+do_flat = True
 
 #-----------------------REDUCTION-----------------------------
 raw_sciences = ['']*len(sciences)
@@ -134,3 +137,15 @@ if do_wavecalib:
                           NeHgArXe_lines_fname, ThAr_lines_fname,
                           tracing_fname, tracing_fname, nthresh=3)
     print('----------------FINISHED WAVELENGTH CALIBRATION------------------')
+wave_fname = os.path.join(_output_dir, thar_lamp + '_wave_coeffs.out')
+
+if do_combine_twilight:
+    combine.combine(twilights_b, twilight, _output_dir)
+    print('-----------------FINISHED TWILIGHT COMBINATION-------------------')
+
+if do_flat:
+    twilight_fname = os.path.join(_output_dir, twilight + '.fits')
+    flat.flat(sciences_b, twilight_fname, _output_dir, tracing_fname,
+              tracing_fname, wave_fname)
+    print('---------------------FINISHED FLATFIELDING-----------------------')
+

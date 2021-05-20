@@ -7,7 +7,7 @@ from m2fs_pipeline import tracer
 
 
 def extract1D(data_array, tracefile, nfiber, error_array = 'error',
-              yaper_each_side=2, method='sum', output=0):
+              yaper=4, method='sum', output=0):
     """
     Extract one fiber of the data frame using the trace file.
 
@@ -51,8 +51,9 @@ def extract1D(data_array, tracefile, nfiber, error_array = 'error',
 
 
     for col in range(ncols):
-        start_aper = int(round(ypeak[col] - yaper_each_side))
-        end_aper = int(round(ypeak[col] + yaper_each_side + 1))
+        yaper_each_side = yaper/2
+        start_aper = int(np.floor(ypeak[col]) - yaper_each_side + 1)
+        end_aper = int(np.ceil(ypeak[col]) + yaper_each_side)
         flux = data_array[start_aper:end_aper, col]
         
         sel = np.where((np.isfinite(flux)==True))[0]
@@ -65,13 +66,13 @@ def extract1D(data_array, tracefile, nfiber, error_array = 'error',
                 spec1d[col] = np.nan
         
         elif(method == 'mean'):
-            if (ngood >= (3*yaper_each_side)/2):
+            if (ngood == len(flux)):
                 spec1d[col] = np.nanmean(flux[sel])
             else:
                 spec1d[col] = np.nan
 
         elif(method == 'biweight'):
-            if (ngood >= (3*yaper_each_side)/2):
+            if (ngood == len(flux)):
                 spec1d[col] = biweight.biweight_location(flux[sel])
             else:
                 spec1d[col] = np.nan
@@ -81,7 +82,7 @@ def extract1D(data_array, tracefile, nfiber, error_array = 'error',
                 print('Must provide error frame for this method')
             
             eflux=error_array[start_aper:end_aper, col]
-            if (ngood >= (3*yaper_each_side)/2):
+            if (ngood == len(flux)):
                 spec1d[col] = (np.nansum(flux[sel]/eflux[sel]**2) /
                                np.nansum(1./eflux[sel]**2))
                 err1d[col]= (1.0/np.nansum(eflux[sel]**-2))**.5
