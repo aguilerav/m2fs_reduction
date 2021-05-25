@@ -93,3 +93,29 @@ def extract1D(data_array, tracefile, nfiber, error_array = 'error',
         return spec1d
     else:
         return spec1d, err1d
+
+
+def fibers_extraction(data_array, error_array, tracefile, method='ivarmean',
+                      row_aper=4):
+    nrows, ncols = data_array.shape
+    nfibers = len(tracefile)
+    data1D = np.zeros((nfibers, ncols))
+    error1D = np.zeros((nfibers, ncols))
+    for fiber in range(nfibers):
+        sys.stdout.write('\rCollapsing fiber: ' + str(fiber))
+        sys.stdout.flush()
+        if method == 'ivarmean':
+            data1D[fiber, :], error1D[fiber, :] = extract1D(data_array,
+                                                            tracefile, fiber,
+                                                            error_array=error_array,
+                                                            yaper=row_aper,
+                                                            method=method,
+                                                            output=1)
+        else:
+            data1D[fiber, :] = extract1D(data_array, tracefile, fiber,
+                                         yaper=row_aper, method=method)
+            error1D[fiber, :] = extract1D(error_array**2, tracefile, fiber,
+                                          method=method)**.5
+    print('')
+
+    return (data1D, error1D)
