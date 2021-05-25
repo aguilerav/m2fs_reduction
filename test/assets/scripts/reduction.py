@@ -10,6 +10,7 @@ from m2fs_pipeline import tracer
 from m2fs_pipeline import fibermap
 from m2fs_pipeline import wavecalib
 from m2fs_pipeline import flat
+from m2fs_pipeline import skysub
 
 _scripts_dir = os.path.dirname(os.path.realpath(__file__))
 _assets_dir = os.path.dirname(_scripts_dir)
@@ -17,15 +18,17 @@ _raw_images_dir = os.path.join(_assets_dir, 'raw_images')
 _output_dir = os.path.join(_assets_dir, 'temp_products')
 assets_dir = os.path.join(os.path.dirname(os.path.dirname(_assets_dir)),
                           'assets')
+inputs_dir = os.path.join(os.path.dirname(os.path.dirname(_assets_dir)),
+                          'inputs')
 
 
 #INPUTS
 spectro = 'b'
 obj = 'COSMOS_C'
 sciences = ['148', '149', '153', '154']
-thar_lamps = ['147', '156', '161']
-nehg_lamps = ['146', '151', '157', '158', '159', '160']
-led_lamps = ['144', '145', '152', '155', '162']
+thar_lamps = ['147', '156']
+nehg_lamps = ['146', '151']
+led_lamps = ['144']
 dark = spectro + 'dark'
 twilights = ['163', '164', '165', '166', '167', '168', '169', '170', '171',
              '172', '173']
@@ -34,10 +37,11 @@ twilights = ['163', '164', '165', '166', '167', '168', '169', '170', '171',
 do_basic = False
 do_combine_led = False
 do_trace = False
-do_combine_lamps = True
-do_wavecalib = True
-do_combine_twilight = True
-do_flat = True
+do_combine_lamps = False
+do_wavecalib = False
+do_combine_twilight = False
+do_flat = False
+do_skysub = True
 
 #-----------------------REDUCTION-----------------------------
 raw_sciences = ['']*len(sciences)
@@ -87,6 +91,7 @@ if do_basic:
     basic.basic(raw_sciences, raw_twilights,
                 raw_led_lamp+raw_nehg_lamp+raw_thar_lamp, dark, _output_dir)
     print('--------------------FINISHED BIAS/TRIM/GAIN----------------------')
+
 sciences_b = ['']*len(sciences)
 for i in range(len(sciences)):
     sciences_b[i] = os.path.join(_output_dir, sciences[i] + 'b.fits')
@@ -149,3 +154,23 @@ if do_flat:
               tracing_fname, wave_fname)
     print('---------------------FINISHED FLATFIELDING-----------------------')
 
+sciences_f = ['']*len(sciences)
+for i in range(len(sciences)):
+    sciences_f[i] = sciences_b[i].replace('.fits', 'f.fits')
+
+fibermap_fname = os.path.join(inputs_dir, 'fibermap',
+                              'Gonzalez_COSMOS_2020A-' + obj + '-11m.fibermap')
+
+if do_skysub:
+    extinction_fname = os.path.join(assets_dir, 'skysub', 'ctioextinct.dat')
+    for i in range(len(sciences_f)):
+        print('Sky substraction of science: ' + str(i+1) + '/' +
+              str(len(sciences_f)))
+        skysub.skysub(sciences_f[i], tracing_fname, wave_fname,
+                      extinction_fname, fibermap_fname, _output_dir,
+                      spectro=spectro, type_sky=1)
+    print('-------------------FINISHED SKY SUBSTRACTION---------------------')
+
+sciences_s = ['']*len(sciences)
+for i in range(len(sciences)):
+    sciences_s[i] = sciences_f[i].replace('.fits', 's.fits')
