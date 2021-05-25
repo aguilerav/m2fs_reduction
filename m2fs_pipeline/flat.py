@@ -11,23 +11,6 @@ from m2fs_pipeline import tracer
 from m2fs_pipeline import wavecalib
 
 
-def fibers_collapsing(arr, arr_err, trace_file, method='mean'):
-    nrows, ncols = arr.shape
-    nfibers = len(trace_file)
-    twi1d = np.zeros((nfibers, ncols))
-    twi1d_err = np.zeros((nfibers, ncols))
-    for fiber in range(nfibers):
-        sys.stdout.write('\rCollapsing fiber: ' + str(fiber))
-        sys.stdout.flush()
-        twi1d[fiber, :] = extract.extract1D(arr, trace_file, fiber,
-                                            method=method)
-        twi1d_err[fiber, :] = extract.extract1D(arr_err**2, trace_file, fiber,
-                                                method=method)**.5
-    print('')
-    
-    return (twi1d, twi1d_err)
-
-
 def normalize(arr, arr_err, kernel_size=35):
     nfibers, ncols = arr.shape
     twilight_1d_norm = np.zeros((nfibers,ncols))
@@ -152,7 +135,8 @@ def twilight_pre_steps(twilight_fits, tracing_twi, wave_file, kernel_size=35):
     wave_vals = wavecalib.wave_values(wave_file, ncols)
     
     #fibers collapsing
-    twi1d, twierr1d = fibers_collapsing(twi, twierr, tracing_twi)
+    twi1d, twierr1d = extract.fibers_extraction(twi, twierr, tracing_twi,
+                                                method='mean')
     
     #obtain normalized twilight
     twi1d_norm, twi1derr_norm = normalize(twi1d, twierr1d,
