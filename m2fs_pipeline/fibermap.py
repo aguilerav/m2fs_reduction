@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from m2fsredux import template
+# from m2fs_pipeline import template
 
 
 def closest_detection(array1, array2):
@@ -83,10 +83,65 @@ def fill_fibers(tracename, total_fibers=128):
         np.savetxt(new_tracefile, new_trace)
 
 
+def fiber_number(spectro, block, fiber):
+    if (spectro == 'b'):
+        fibernumber = (block - 1)*16 + (16 - fiber)
+        return fibernumber
+    elif (spectro == 'r'):
+        fibernumber = (8 - block)*16 + (16 - fiber)
+        return fibernumber
+    else:
+        print('Invalid spectrograph')
+
+
+def fibers_id(char, spectro, fibermap_fname):
+    """
+    This function return the names and the number of the selected fibers
+
+    Parameters
+    ----------
+    char : str
+        'S' for sky and 'C' for stars
+    spectro : str
+        M2FS frame ('b' or 'r')
+    fibermap_fname : str
+
+    Returns
+    -------
+    list:
+        name of the selected fibers
+    list
+        number of the selected fibers in 0-127 base
+    """
+    fibermap = np.genfromtxt(fibermap_fname, dtype=str, comments='#')
+    fibernames = []
+    fibernumbers = []
+    for i in range(len(fibermap)):
+        if (fibermap[i][0][0:1] == spectro.upper()):
+            if (char == 'S'):
+                if (fibermap[i][5] == 'S'):
+                    block = int(fibermap[i][0][1:2])
+                    fiber = int(fibermap[i][0][3:5])
+                    fibernumbers.append(fiber_number(spectro, block, fiber))
+                    fibernames.append(fibermap[i][1])
+            if (char == 'C'):
+                if (fibermap[i][-1] != '-'):
+                    block = int(fibermap[i][0][1:2])
+                    fiber = int(fibermap[i][0][3:5])
+                    fibernumbers.append(fiber_number(spectro, block, fiber))
+                    fibernames.append(fibermap[i][1])
+    
+    fibernumbers = np.array(fibernumbers)
+    fibernames = np.array(fibernames)
+    sorting = np.argsort(fibernumbers)
+    fibernumbers = fibernumbers[sorting]
+    fibernames = fibernames[sorting]
+    
+    return fibernames, fibernumbers
+
+"""
 def create_converter(fibermap_fname, spectro):
-    """
-    spectro: b or r
-    """
+
     fibermap = np.genfromtxt(fibermap_fname, dtype=str, skip_header=22,
                              skip_footer=15)
     names = []
@@ -121,13 +176,11 @@ def create_converter(fibermap_fname, spectro):
             fiber.append(b + n)
     fiber = np.array(fiber)
     return fiber
-    
+
 
 def fibers_routine(char, spectro, fibermap_fname, converter_fname,
                    magnitudes_fname):
-    """
-    char: S for sky, C for stars
-    """
+
     fibermap = np.genfromtxt(fibermap_fname, dtype=str, skip_header=22,
                              skip_footer=15)
     converter = np.genfromtxt(converter_fname, dtype=str)
@@ -196,4 +249,4 @@ def substraction(array1, array2):
 
 
 
-
+"""
