@@ -5,6 +5,7 @@ from astropy.io import fits
 
 from m2fs_pipeline import cosmics
 
+
 def str_slice_to_corners(str_section):
     """
     Headers contain bias, data, and trim sections. They are like numpy slices
@@ -96,7 +97,8 @@ def merge_error(fits_ext1, fits_ext2, fits_ext3, fits_ext4):
                                             fits_ext4.header['ENOISE']**2)
 
     err_output[rows:2*rows, cols:2*cols] = np.sqrt(
-                                            abs(np.flip(fits_ext3.data, (0, 1))) +
+                                            abs(np.flip(fits_ext3.data,
+                                                        (0, 1))) +
                                             fits_ext3.header['ENOISE']**2)
 
     err_hdu = fits.ImageHDU(err_output)
@@ -154,7 +156,7 @@ def dark_correction(fits_science, fits_dark):
     hdr_dark = fits_dark[0].header
 
     img = img_science - hdr_science['EXPTIME'] * (img_dark/hdr_dark['EXPTIME'])
-    err = np.sqrt((err_science**2 + 
+    err = np.sqrt((err_science**2 +
                    (hdr_science['EXPTIME']*err_dark/hdr_dark['EXPTIME'])**2))
 
     msg = 'dark: dark corrected'
@@ -200,7 +202,7 @@ def gain_bias_trim_merge(filename):
         c2.close()
         c3.close()
         c4.close()
-    
+
     return output
 
 
@@ -231,7 +233,7 @@ def gain_merge(darkname):
         c2.close()
         c3.close()
         c4.close()
-    
+
     return output
 
 
@@ -240,7 +242,7 @@ def basic_dark(dark, output_dir):
     Basic steps reduction for dark file.
     - Gain
     - Merge
-    
+
     It saves the resulting fits in output_dir.
 
     Parameters
@@ -257,6 +259,7 @@ def basic_dark(dark, output_dir):
     darkname = os.path.basename(dark)
     output_dark.writeto(os.path.join(output_dir, darkname + '.fits'),
                         overwrite=True)
+
 
 def basic_steps(fits_fname, dark_fname, ngrow=2):
     """
@@ -302,14 +305,14 @@ def basic(sciences, twilights, lamps, dark, output_dir):
         output_science.writeto(os.path.join(output_dir,
                                             science_name + 'b.fits'),
                                overwrite=True)
-    
+
     for i in range(len(twilights)):
         twilight_name = os.path.basename(twilights[i])
         output_twilight = basic_steps(twilights[i], darkname)
         output_twilight.writeto(os.path.join(output_dir,
                                              twilight_name + 'b.fits'),
                                 overwrite=True)
-    
+
     for i in range(len(lamps)):
         lamp_name = os.path.basename(lamps[i])
         output_lamp = basic_steps(lamps[i], darkname)
