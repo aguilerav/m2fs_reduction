@@ -23,8 +23,10 @@ def skyline_correction(wave, flux, sky_waves, wave_aperture=5):
     for i in range(len(sky_waves)):
         wave_window = np.where((sky_waves[i]-wave_aperture < wave) & 
                                 (wave < sky_waves[i]+wave_aperture))[0]
+
         new_wave = wave[wave_window]
         new_flux = flux[wave_window]
+
         nan_count = np.count_nonzero(np.isnan(new_flux))
         L = len(new_flux)
         new_wave = new_wave[~np.isnan(new_flux)]
@@ -35,7 +37,7 @@ def skyline_correction(wave, flux, sky_waves, wave_aperture=5):
             continue
         new_wave = new_wave - sky_waves[i]
         coef, pcov = curve_fit(gaussian, new_wave, new_flux,
-                            p0=[1000, 0, 2, 0], maxfev=2000000)
+                               p0=[1000, 0, 2, 0], maxfev=2000000)
         correction[i] = coef[1]
         if (abs(coef[1]) > 5):
             correction[i] = np.nan
@@ -118,7 +120,7 @@ def get_median_per_fiber(data_1D, data_err_1D):
     return median_data, median_err
 
 
-def change_wave_by_skyline(data_1D, wave_1D, sky_wave):
+def change_wave_by_skyline(wave_1D, data_1D, sky_wave):
     nfibers, ncols = data_1D.shape
     offset = np.zeros(nfibers)
     for fiber in range(nfibers):
@@ -413,6 +415,7 @@ def skysub(science_fname, trace_fname, wave_fname, extinction_fname,
                                                           fibermap_fname)
 
     wave_1D = wavecalib.wave_values(wavecalibfile, ncols)
+
     data_1D, data_err_1D = extract.fibers_extraction(data, data_err, tracefile)
     wave_1D, offset = change_wave_by_skyline(wave_1D, data_1D, sky_waves)
     median_data, median_err = get_median_per_fiber(data_1D, data_err_1D)
