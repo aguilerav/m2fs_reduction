@@ -11,6 +11,7 @@ from m2fs_pipeline import fibermap
 from m2fs_pipeline import wavecalib
 from m2fs_pipeline import flat
 from m2fs_pipeline import skysub
+from m2fs_pipeline import extract
 
 _scripts_dir = os.path.dirname(os.path.realpath(__file__))
 _assets_dir = os.path.dirname(_scripts_dir)
@@ -41,7 +42,8 @@ do_combine_lamps = False
 do_wavecalib = False
 do_combine_twilight = False
 do_flat = False
-do_skysub = True
+do_skysub = False
+do_collapse = True
 
 #-----------------------REDUCTION-----------------------------
 raw_sciences = ['']*len(sciences)
@@ -174,3 +176,11 @@ if do_skysub:
 sciences_s = ['']*len(sciences)
 for i in range(len(sciences)):
     sciences_s[i] = sciences_f[i].replace('.fits', 's.fits')
+
+if do_collapse:
+    for i in range(len(sciences_s)):
+        print('Collapsing fibers of science: ' + str(i+1) + '/' +
+              str(len(sciences_s)))
+        extract.collapse_fibers(sciences_s[i], tracing_fname, wave_fname, 
+                                _output_dir, method='ivarmean')
+    print('------------------FINISHED FIBERS COLLAPSING--------------------')
