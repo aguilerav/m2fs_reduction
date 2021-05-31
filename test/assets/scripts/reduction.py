@@ -1,3 +1,4 @@
+from m2fs_pipeline.fluxcalib import flux_calibration
 import os
 import sys
 import numpy as np
@@ -12,6 +13,10 @@ from m2fs_pipeline import wavecalib
 from m2fs_pipeline import flat
 from m2fs_pipeline import skysub
 from m2fs_pipeline import extract
+from m2fs_pipeline import standard
+from m2fs_pipeline import sensitivity
+
+from m2fs_pipeline import fluxcalib
 
 _scripts_dir = os.path.dirname(os.path.realpath(__file__))
 _assets_dir = os.path.dirname(_scripts_dir)
@@ -43,7 +48,11 @@ do_wavecalib = False
 do_combine_twilight = False
 do_flat = False
 do_skysub = False
-do_collapse = True
+do_collapse = False
+do_template = False
+do_sensitivity = False
+
+do_fluxcalib = False
 
 #-----------------------REDUCTION-----------------------------
 raw_sciences = ['']*len(sciences)
@@ -184,3 +193,43 @@ if do_collapse:
         extract.collapse_fibers(sciences_s[i], tracing_fname, wave_fname, 
                                 _output_dir, method='ivarmean')
     print('------------------FINISHED FIBERS COLLAPSING--------------------')
+
+
+sciences_sc = ['']*len(sciences)
+for i in range(len(sciences)):
+    sciences_sc[i] = sciences_s[i].replace('.fits', 'c.fits')
+
+
+templates_path = os.path.join(assets_dir, 'fluxcalib')
+magnitudes_fname = os.path.join(inputs_dir, 'calibration_stars',
+                                obj + '_magnitudes.dat')
+if do_template:
+    for i in range(len(sciences_sc)):
+        print('Template generation for science: ' + str(i+1) + '/' +
+              str(len(sciences_sc)))
+        standard.standard_template(sciences_sc[i], fibermap_fname,
+                                   templates_path, magnitudes_fname,
+                                   _output_dir, spectro=spectro,
+                                   num_selections=50)
+    print('------------------FINISHED STANDARD TEMPLATES--------------------')
+
+if do_sensitivity:
+    for i in range(len(sciences_sc)):
+        print('Sensitivity factor science: ' + str(i+1) + '/' +
+              str(len(sciences_sc)))
+        sensitivity.factor(sciences_sc[i], fibermap_fname, _output_dir,
+                           spectro=spectro, plot=False)
+    sensitivity.curve(sciences_sc, fibermap_fname, _output_dir,
+                      spectro=spectro, plot=True)
+    print('------------------FINISHED SENSITIVITY CURVE--------------------')
+
+sens_fname = os.path.join(_output_dir, obj + '_' + spectro +
+                          '_sensitivity.out')
+
+if do_fluxcalib:
+    for i in range(len(sciences_sc)):
+        print('Flux calibration science: ' + str(i+1) + '/' + str(len(sciences_sc)))
+        flux_calibration(sciences_sc[i], fibermap_fname,
+                         sens_fname, _output_dir)
+
+
