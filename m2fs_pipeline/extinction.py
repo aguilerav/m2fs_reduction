@@ -19,7 +19,7 @@ def curve(x):
 
 def extinction(field, input, output):
 
-    #original sensitivity function
+#   original sensitivity function
     wave0 = np.genfromtxt(input, comments='#')[:,0]
     factor0 = np.genfromtxt(input, comments='#')[:,1]
     factor0_err = np.genfromtxt(input, comments='#')[:, 2]
@@ -31,10 +31,10 @@ def extinction(field, input, output):
     if(field=='COSMOS'):
         Av=0.051
 
-    #A_lambda
+#   A_lambda
     A_lambda = curve(wave0)*Av
 
-    #corrected sensitivity function
+#   corrected sensitivity function
     factor=factor0*10**(0.4*A_lambda)
     factor_err = factor0_err*10**(0.4*A_lambda)
 

@@ -25,6 +25,8 @@ assets_dir = os.path.join(os.path.dirname(os.path.dirname(_assets_dir)),
                           'assets')
 inputs_dir = os.path.join(os.path.dirname(os.path.dirname(_assets_dir)),
                           'inputs')
+output_dir = os.path.join(os.path.dirname(os.path.dirname(_assets_dir)),
+                          'output')
 
 
 #INPUTS
@@ -50,8 +52,9 @@ do_skysub = False
 do_collapse = False
 do_template = False
 do_sensitivity = False
+do_fluxcalib = False
 
-do_fluxcalib = True
+do_combine = True
 
 #-----------------------REDUCTION-----------------------------
 raw_sciences = ['']*len(sciences)
@@ -231,4 +234,16 @@ if do_fluxcalib:
               str(len(sciences_sc)))
         fluxcalib.flux_calibration(sciences_sc[i], fibermap_fname, sens_fname,
                                    _output_dir)
+    print('------------------FINISHED FLUX CALIBRATION--------------------')
 
+sciences_a = ['']*len(sciences)
+for i in range(len(sciences)):
+    sciences_a[i] = sciences_sc[i].replace('.fits', 'a.fits')
+
+if do_combine:
+    wave_inter = np.arange(4500, 7000, 1)
+#    combine.grid_fit(sciences_a, wave_inter, _output_dir)
+    sciences_w = ['']*len(sciences)
+    for i in range(len(sciences)):
+        sciences_w[i] = sciences_a[i].replace('.fits', 'w.fits')
+    combine.grid_merge(sciences_a, obj, spectro, output_dir)
