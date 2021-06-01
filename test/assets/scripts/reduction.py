@@ -1,4 +1,3 @@
-from m2fs_pipeline.fluxcalib import flux_calibration
 import os
 import sys
 import numpy as np
@@ -52,7 +51,7 @@ do_collapse = False
 do_template = False
 do_sensitivity = False
 
-do_fluxcalib = False
+do_fluxcalib = True
 
 #-----------------------REDUCTION-----------------------------
 raw_sciences = ['']*len(sciences)
@@ -228,8 +227,8 @@ sens_fname = os.path.join(_output_dir, obj + '_' + spectro +
 
 if do_fluxcalib:
     for i in range(len(sciences_sc)):
-        print('Flux calibration science: ' + str(i+1) + '/' + str(len(sciences_sc)))
-        flux_calibration(sciences_sc[i], fibermap_fname,
-                         sens_fname, _output_dir)
-
+        print('Flux calibration science: ' + str(i+1) + '/' +
+              str(len(sciences_sc)))
+        fluxcalib.flux_calibration(sciences_sc[i], fibermap_fname, sens_fname,
+                                   _output_dir)
 
