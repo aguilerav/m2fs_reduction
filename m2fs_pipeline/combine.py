@@ -4,6 +4,9 @@ import warnings
 import numpy as np
 import scipy.interpolate as inter
 from astropy.io import fits
+from astropy.stats import biweight
+from m2fs_pipeline import fibermap
+from m2fs_pipeline import sensitivity
 
 
 # IMAGE COMBINATION ROUTINE (PIXEL BY PIXEL)
@@ -204,7 +207,7 @@ def standard_wavelength(wave_inter, wave, flux, error):
     return flux_inter, err_inter
 
 
-def fit_into_wave_grid(sciences, wave_inter, output_dir):
+def grid_fit(sciences, wave_grid, output_dir):
     for i in range(len(sciences)):
         print('Sampling science into grid: ' + str(i+1) + '/' +
                          str(len(sciences)))
@@ -217,23 +220,26 @@ def fit_into_wave_grid(sciences, wave_inter, output_dir):
         fits_file.close()
 
         nfib = flux_array.shape[0]
-        flux_inter = np.zeros((nfib, len(wave_inter)))
-        err_inter = np.zeros((nfib, len(wave_inter)))
+        flux_inter = np.zeros((nfib, len(wave_grid)))
+        err_inter = np.zeros((nfib, len(wave_grid)))
+        wave_inter = np.zeros((nfib, len(wave_grid)))
         for fiber in range(nfib):
-            sys.stdout.write('\rFiber: ' + str(fiber) + '/' + str(nfib))
+            sys.stdout.write('\rFiber: ' + str(fiber + 1) + '/' + str(nfib))
             sys.stdout.flush()
             flux = flux_array[fiber]
             err = err_array[fiber]
             wave = wave_array[fiber]
             if (len(flux[~np.isnan(flux)])==0):
-                flux_inter[fiber, :] = [np.nan]*len(wave_inter)
-                err_inter[fiber, :] = [np.nan]*len(wave_inter)
+                flux_inter[fiber, :] = [np.nan]*len(wave_grid)
+                err_inter[fiber, :] = [np.nan]*len(wave_grid)
+                wave_inter[fiber, :] = wave_grid
             else:
                 flux_inter[fiber, :], err_inter[fiber, :] = standard_wavelength(
-                                                            wave_inter, wave,
+                                                            wave_grid, wave,
                                                             flux, err)
+                wave_inter[fiber, :] = wave_grid
         print('')
-        msg = 'Sampled science into defined grid'
+        msg = 'combine: Sampled science into defined grid'
         hdr['HISTORY'] = msg
         data_fits = fits.PrimaryHDU(flux_inter, header=hdr)
         err_fits = fits.ImageHDU(err_inter)
@@ -242,3 +248,70 @@ def fit_into_wave_grid(sciences, wave_inter, output_dir):
         name_fits = science_name + 'w.fits'
         fits_file.writeto(os.path.join(output_dir, name_fits), overwrite=True)
 
+
+def grid_merge(sciences, obj, spectro, fibermap_fname, output_dir,
+               method='ivarmean'):
+    print('Combining sciences')
+#   Read firts file
+    fits_file = fits.open(sciences[0])
+    data1 = fits_file[0].data
+    err1 = fits_file[1].data
+    wave1 = fits_file[2].data
+    hdr1 = fits_file[0].header
+
+    info = data1[np.newaxis, :]
+    info_err = err1[np.newaxis, :]
+    fits_file.close()
+
+#   Rest of the files
+    for i in range(len(sciences)-1):
+        fits_file = fits.open(sciences[i+1])
+        info = np.append(info, fits_file[0].data[np.newaxis, :], axis=0)
+        info_err = np.append(info_err, fits_file[1].data[np.newaxis, :], axis=0)
+        fits_file.close()
+
+    nfibers = len(data1)
+    for fiber in range(nfibers):
+        sys.stdout.write('\rCombining fiber: ' 
+                         + str(fiber+1) + '/' + str(nfibers))
+        sys.stdout.flush()
+        fiber_wave = np.copy(wave1[fiber])
+        fiber_data = np.zeros(len(fiber_wave))
+        fiber_err = np.zeros(len(fiber_wave))
+        for i in range(len(fiber_wave)):
+            data_slice = info[:, fiber, i]
+            err_slice = info_err[:, fiber, i]
+            non_missing_data = np.count_nonzero(~np.isnan(data_slice))
+            if non_missing_data == 0:
+                fiber_data[i] = np.nan
+                fiber_err[i] = np.nan
+            else:
+                if method == 'mean':
+                    fiber_data[i] = np.nanmean(data_slice)
+                    fiber_err[i] = np.nanmean(err_slice**2)**.5
+                elif method == 'biweight':
+                    fiber_data[i] == biweight.biweight_location(data_slice)
+                    fiber_err[i] == biweight.biweight_location(err_slice**2)**.5
+                elif method == 'ivarmean':
+                    fiber_data[i] = (np.nansum(data_slice/err_slice**2) /
+                                      np.nansum(1./err_slice**2))
+                    fiber_err[i] = (1./np.nansum(err_slice**-2))**.5
+        fiber_wave, fiber_data = sensitivity.clean_skylines(fiber_wave,
+                                                            fiber_data)
+        fiber_wave, fiber_err = sensitivity.clean_skylines(fiber_wave,
+                                                           fiber_err)
+#   Create output
+        specfile = obj + '_' + spectro + '_' + str(fiber) + '_spectrum.dat'
+        specname = os.path.join(output_dir, specfile)
+        fiber_idx, fiber_name = fibermap.fibermap_info(fiber, spectro,
+                                                       fibermap_fname)
+        lun = open(specname, 'w')
+        lun.write('# ' + fiber_idx + '\n')
+        lun.write('# ' + fiber_name + '\n')
+        lun.write('# Wavelength [\AA]' + '\t' + 'F_lda [ergs/s/cm^2/\AA]' +
+                  '\t' + 'Error [ergs/s/cm^2/\AA]' + '\n')
+        fiber_spectrum = np.vstack((fiber_wave, fiber_data, fiber_err)).T
+        np.savetxt(lun, fiber_spectrum)
+        lun.write('\n')
+        lun.close()
+    print('')

@@ -102,13 +102,8 @@ def fluxcalib(std1d, stderr1d, wave1d, hdr, filename, calibfile):
             factor = f(auxwave)
             factor_err = f_err(auxwave)
             datacalib[i, :] = std1d[i, :]*factor
-            for j in range(len(datacalib)):
-                if np.isnan(datacalib[i][j]):
-                    errorcalib[i][j] = np.nan
-                else:
-                    errorcalib[i][j] = (np.abs(datacalib[i][j])*
-                                        np.sqrt((stderr1d[i][j]/std1d[i][j])**2 +
-                                                (factor_err[j]/factor[j])**2))
+            errorcalib[i, :] = np.abs(datacalib[i, :]) * np.sqrt((stderr1d[i]/std1d[i])**2 +
+                                                                 (factor_err/factor)**2)
     print('')
 
     hdr['HISTORY'] = 'fluxcalib: Flux calibrated'
