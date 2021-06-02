@@ -21,12 +21,11 @@ _scripts_dir = os.path.dirname(os.path.realpath(__file__))
 _assets_dir = os.path.dirname(_scripts_dir)
 _raw_images_dir = os.path.join(_assets_dir, 'raw_images')
 _output_dir = os.path.join(_assets_dir, 'temp_products')
+output_dir = os.path.join(_assets_dir, 'output')
 assets_dir = os.path.join(os.path.dirname(os.path.dirname(_assets_dir)),
                           'assets')
 inputs_dir = os.path.join(os.path.dirname(os.path.dirname(_assets_dir)),
                           'inputs')
-output_dir = os.path.join(os.path.dirname(os.path.dirname(_assets_dir)),
-                          'output')
 
 
 #INPUTS
@@ -246,4 +245,4 @@ if do_combine:
     sciences_w = ['']*len(sciences)
     for i in range(len(sciences)):
         sciences_w[i] = sciences_a[i].replace('.fits', 'w.fits')
-    combine.grid_merge(sciences_a, obj, spectro, output_dir)
+    combine.grid_merge(sciences_a, obj, spectro, fibermap_fname, output_dir)

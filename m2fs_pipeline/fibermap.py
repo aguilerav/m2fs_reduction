@@ -94,6 +94,54 @@ def fiber_number(spectro, block, fiber):
         print('Invalid spectrograph')
 
 
+def fibermap_info(fiber, spectro, fibermap_fname):
+    """
+    It returns the corresponding fiber identification and name
+    e.g. ('B1-12', 'COS-539573')
+    
+    Parameters
+    ----------
+    fiber : Int
+        Fiber number in (0-127) basis
+    spectro : str
+        'b' or 'r'
+    fibermap_fname : str
+        fibermap file path
+    
+    Returns
+    -------
+    str
+        fiber idx e.g. 'B1-12'
+    str
+        fiber name e.g. 'COS-539573'
+    """
+    fibermap = np.genfromtxt(fibermap_fname, dtype=str, comments='#')
+    idx = fibermap[:, 0]
+    names = fibermap[:, 1]
+    if (spectro == 'b'):
+        fiberblock = int(np.floor(fiber/16)) + 1
+        fibernumber = 16-(fiber - 16*(fiberblock-1))
+        if fibernumber >= 10:
+            fibernumber = str(fibernumber)
+        else:
+            fibernumber = '0' + str(fibernumber)
+        fiber_idx = 'B' + str(fiberblock) + '-' + fibernumber
+        fiber_name = names[fiber_idx == idx][0]
+        return  fiber_idx, fiber_name
+    elif (spectro == 'r'):
+        fiberblock = 8 - int(np.floor(fiber/16))
+        fibernumber = 16 - (fiber - 16*(8 - fiberblock))
+        if fibernumber >= 10:
+            fibernumber = str(fibernumber)
+        else:
+            fibernumber = '0' + str(fibernumber)
+        fiber_idx = 'R' + str(fiberblock) + '-' + fibernumber
+        fiber_name = names[fiber_idx == idx][0]
+        return fiber_idx, fiber_name
+    else:
+        print('Incorrect spectro')
+
+
 def fibers_id(char, spectro, fibermap_fname):
     """
     This function return the names and the number of the selected fibers
