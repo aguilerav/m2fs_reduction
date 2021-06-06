@@ -16,6 +16,54 @@ def closest_detection(array1, array2):
     return aux
 
 
+def nan_filler(array, close_distance, long_distance, total_length):
+    """
+    It fills an array when it has missing values according a possible close
+    and long distances for the values.
+
+    Parameters
+    ----------
+    array : list
+        The array to edit
+    close_distance : float
+        The first distance, the short one
+    long_distance : float
+        The long possible distance
+    total_length : int
+        The length that the array must have
+    
+    Returns
+    -------
+    numpy.ndarray
+        The array list but now with nans where there is a missing value
+    """
+    nan_array = []
+    for i in range(len(array)-1):
+        if (array[i+1] - array[i] < 1.5*close_distance):
+            nan_array.append(array[i])
+        else:
+            if (array[i+1] - array[i] < 2.5*close_distance):
+                nan_array.append(array[i])
+                nan_array.append(np.nan)
+            else:
+                if (array[i+1] - array[i] < 3.5*close_distance):
+                    nan_array.append(array[i])
+                    nan_array.append(np.nan)
+                    nan_array.append(np.nan)
+                else:
+                    if (array[i+1] - array[i] < long_distance + 0.5*close_distance):
+                        nan_array.append(array[i])
+                    else:
+                        nan_array.append(array[i])
+                        nan_array.append(np.nan)
+    nan_array.append(array[-1])
+    if len(nan_array) <= total_length:
+        for i in range(total_length - len(nan_array)):
+            nan_array.append(np.nan)
+    
+    return np.array(nan_array)
+
+
 def fill_fibers(tracename, total_fibers=128):
     """
     Fill not found fibers with Nans to keep track of them.
@@ -43,31 +91,16 @@ def fill_fibers(tracename, total_fibers=128):
     close_distance = np.median(dfibers)
     long_distance = np.median(dfibers[dfibers>8*close_distance])
 
-    #Simulate complete fibers
-    sim_peaks = []
-    sim_peaks.append(trace_central[0])
-    for i in range(total_fibers-1):
-        if len(sim_peaks)%16!=0:
-            sim_peaks.append(sim_peaks[-1] + close_distance)
-        else:
-            sim_peaks.append(sim_peaks[-1] + long_distance)
-
-    closest = closest_detection(sim_peaks, trace_central)
-
-    #Select fibers with no nearby detections
-    aux = []
-    aux = np.where(closest >= 6)[0]
-
     #Create new tracefiles with nans where fibers where not detected.
+    full_peaks = nan_filler(trace_central, close_distance, long_distance,
+                            total_fibers)
     new_trace = np.zeros((total_fibers, trace_coeffs.shape[1]))
-    jump = 0
     for i in range(len(new_trace)):
-        if (any((i-aux) == 0)):
+        if np.isnan(full_peaks[i]):
             new_trace[i, :] = np.nan
-            if (np.amin(abs(trace_central - sim_peaks[i])) >= 6):
-                jump = jump + 1
         else:
-            new_trace[i, :] = trace_coeffs[i - jump, :]
+            idx = (np.abs(trace_central - full_peaks[i])).argmin()
+            new_trace[i, :] = trace_coeffs[idx, :]
 
     #Verify new file have same length as template (128)
     if (len(new_trace) != total_fibers):

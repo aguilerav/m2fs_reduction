@@ -301,7 +301,7 @@ def grid_merge(sciences, obj, spectro, fibermap_fname, output_dir,
         fiber_wave, fiber_err = sensitivity.clean_skylines(fiber_wave,
                                                            fiber_err)
 #   Create output
-        specfile = obj + '_' + spectro + '_' + str(fiber) + '_spectrum.dat'
+        specfile = obj + '_' + spectro + '_' + str(fiber) + '_spectrum.out'
         specname = os.path.join(output_dir, specfile)
         fiber_idx, fiber_name = fibermap.fibermap_info(fiber, spectro,
                                                        fibermap_fname)
