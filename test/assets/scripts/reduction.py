@@ -31,27 +31,36 @@ inputs_dir = os.path.join(os.path.dirname(os.path.dirname(_assets_dir)),
 #INPUTS
 spectro = 'b'
 obj = 'COSMOS_C'
-sciences = ['148', '149', '153', '154']
-thar_lamps = ['147', '156']
-nehg_lamps = ['146', '151']
-led_lamps = ['144']
-dark = spectro + 'dark'
-twilights = ['163', '164', '165', '166', '167', '168', '169', '170', '171',
-             '172', '173']
+if obj=='COSMOS_S':
+    sciences = ['1376', '1377', '1382', '1383', '1388']
+    thar_lamps = ['1373', '1380', '1384', '1389']
+    nehg_lamps = ['1371', '1372', '1378', '1379', '1385', '1386', '1390', '1391']
+    led_lamps = ['1374', '1381', '1387', '1392']
+    dark = spectro + 'dark'
+    twilights = ['1398', '1399', '1402', '1403', '1404', '1405', '1406', '1407',
+                '1408']
+if obj=='COSMOS_C':
+    sciences = ['148', '149', '153', '154']
+    thar_lamps = ['147', '156', '161']
+    nehg_lamps = ['146', '151', '157', '158', '159', '160']
+    led_lamps = ['144', '145', '152', '155', '162']
+    dark = spectro + 'dark'
+    twilights = ['163', '164', '165', '166', '167', '168', '169', '170', '171',
+                 '172', '173']
 
 #FUNCTIONS
-do_basic = False
-do_combine_led = False
-do_trace = False
-do_combine_lamps = False
-do_wavecalib = False
-do_combine_twilight = False
-do_flat = False
-do_skysub = False
-do_collapse = False
-do_template = False
-do_sensitivity = False
-do_fluxcalib = False
+do_basic = True
+do_combine_led = True
+do_trace = True
+do_combine_lamps = True
+do_wavecalib = True
+do_combine_twilight = True
+do_flat = True
+do_skysub = True
+do_collapse = True
+do_template = True
+do_sensitivity = True
+do_fluxcalib = True
 
 do_combine = True
 
@@ -218,10 +227,10 @@ if do_sensitivity:
     for i in range(len(sciences_sc)):
         print('Sensitivity factor science: ' + str(i+1) + '/' +
               str(len(sciences_sc)))
-        sensitivity.factor(sciences_sc[i], fibermap_fname, _output_dir,
-                           spectro=spectro, plot=False)
-    sensitivity.curve(sciences_sc, fibermap_fname, _output_dir,
-                      spectro=spectro, plot=True)
+        sensitivity.factor(sciences_sc[i], fibermap_fname, magnitudes_fname,
+                           _output_dir, spectro=spectro, plot=False)
+    sensitivity.curve(sciences_sc, fibermap_fname,magnitudes_fname,
+                      _output_dir, obj=obj, spectro=spectro, plot=True)
     print('------------------FINISHED SENSITIVITY CURVE--------------------')
 
 sens_fname = os.path.join(_output_dir, obj + '_' + spectro +
@@ -232,7 +241,7 @@ if do_fluxcalib:
         print('Flux calibration science: ' + str(i+1) + '/' +
               str(len(sciences_sc)))
         fluxcalib.flux_calibration(sciences_sc[i], fibermap_fname, sens_fname,
-                                   _output_dir)
+                                   magnitudes_fname, _output_dir)
     print('------------------FINISHED FLUX CALIBRATION--------------------')
 
 sciences_a = ['']*len(sciences)
@@ -241,7 +250,7 @@ for i in range(len(sciences)):
 
 if do_combine:
     wave_inter = np.arange(4500, 7000, 1)
-#    combine.grid_fit(sciences_a, wave_inter, _output_dir)
+    combine.grid_fit(sciences_a, wave_inter, _output_dir)
     sciences_w = ['']*len(sciences)
     for i in range(len(sciences)):
         sciences_w[i] = sciences_a[i].replace('.fits', 'w.fits')

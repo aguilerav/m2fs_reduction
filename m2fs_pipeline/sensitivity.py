@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 
 from m2fs_pipeline import fibermap
+from m2fs_pipeline import standard
 
 def gaussian(x, a0, a1, a2):
     z = (x-a1)/a2
@@ -167,10 +168,12 @@ def visual_test(wave, flux, error, wave_temp, flux_temp, temp_name, fiber,
     input('Close plot and press ENTER')
 
 
-def factor(science, fibermap_fname, output_dir, spectro='b', sigma1=2.,
-           sigma0=10., lmask=np.array([5577, 5890, 6298, 6360]), dlmask=20,
-           bound=100, nsmooth=1, plot=False):
+def factor(science, fibermap_fname, magnitudes_fname, output_dir, spectro='b',
+           sigma1=2., sigma0=10., lmask=np.array([5577, 5890, 6298, 6360]),
+           dlmask=20, bound=100, nsmooth=1, plot=False):
     starnames, starfibers = fibermap.fibers_id('C', spectro, fibermap_fname)
+    starnames, starfibers = standard.select_stars(starnames, starfibers,
+                                                  magnitudes_fname)
 
     science_fits = fits.open(science)
     flux_array = science_fits[0].data
@@ -223,9 +226,9 @@ def plot_curves(sciences, starfibers, wave_factor, factor, output_dir):
             wave_calib = np.genfromtxt(calib_name, comments='#')[:, 0]
             sens_calib = np.genfromtxt(calib_name, comments='#')[:, 1]
             star_sens = np.vstack((wave_calib, sens_calib/np.nanmedian(sens_calib))).T
-            star_sens_fname = os.path.join(output_dir, science_name + '_' +
-                                                       str(starfibers[j]) +
-                                                       '_sens.dat')
+            star_sens_fname = os.path.join(standard_path, science_name + '_' +
+                                                          str(starfibers[j]) +
+                                                          '_sens.dat')
             np.savetxt(star_sens_fname, star_sens)
             plt.plot(wave_calib, sens_calib/np.nanmedian(sens_calib), '--',
                      label=science_name + '_' + str(fiber))
@@ -245,10 +248,12 @@ def plot_chi(chi_squares):
     plt.show()
 
 
-def curve(sciences, fibermap_fname, output_dir, obj='COSMOS_C', spectro='b',
-          plot=False):
+def curve(sciences, fibermap_fname, magnitudes_fname, output_dir,
+          obj='COSMOS_C', spectro='b', plot=False):
     starnames, starfibers = fibermap.fibers_id('C', spectro,
                                                fibermap_fname)
+    starnames, starfibers = standard.select_stars(starnames, starfibers,
+                                                  magnitudes_fname)
     
     wave_factor = np.arange(4500, 7000, 1)
     factor_weight = np.zeros(len(wave_factor))

@@ -10,19 +10,34 @@ from astropy import constants as const
 from m2fs_pipeline import fibermap
 
 
+def extract_mag(magnitudes_fname, starname):
+    mags = np.genfromtxt(magnitudes_fname, dtype=str)
+    select = np.where(starname == mags[:, 0])[0]
+    mag_V = float(mags[select[0]][3])
+    err_V = float(mags[select[0]][4])
+
+    return mag_V, err_V
+
+
+def select_stars(starnames, starfibers, magnitudes_fname):
+    starnames_obs = []
+    starfiber_obs = []
+    for i in range(len(starnames)):
+        mag_V, err_V = extract_mag(magnitudes_fname, starnames[i])
+        if mag_V!=99.000:
+            starnames_obs.append(starnames[i])
+            starfiber_obs.append(starfibers[i])
+    return np.array(starnames_obs), np.array(starfiber_obs)
+
+
 def load_filters(curves_list, curves_path):
-    band_B = np.where('B' == curves_list[:, 1])[0]
     band_V = np.where('V' == curves_list[:, 1])[0]
-    curve_B = np.genfromtxt(os.path.join(curves_path,
-                                         curves_list[band_B[0]][0]))
     curve_V = np.genfromtxt(os.path.join(curves_path,
                                          curves_list[band_V[0]][0]))
-    wave_B = curve_B[:, 0]
-    trans_B = curve_B[:, 1]
     wave_V = curve_V[:, 0]
     trans_V = curve_V[:, 1]
 
-    return wave_B, trans_B, wave_V, trans_V
+    return wave_V, trans_V
 
 
 def gaussian(x, a0, a1, a2):
@@ -154,17 +169,6 @@ def sort_chi_standard(flux_array, err_array, wave_array, starfibers, templates,
     print('')
 
 
-def extract_mag(magnitudes_fname, starname):
-    mags = np.genfromtxt(magnitudes_fname, dtype=str)
-    select = np.where(starname == mags[:, 0])[0]
-    mag_V = float(mags[select[0]][3])
-    err_V = float(mags[select[0]][4])
-    mag_B = float(mags[select[0]][1])
-    err_B = float(mags[select[0]][2])
-
-    return mag_B, err_B, mag_V, err_V
-
-
 def photometry(wave_filter, T_filter, wave_template, f_template):
     """
     It returns the observed AB magnitude of the template when is passed through
@@ -195,18 +199,10 @@ def photometry(wave_filter, T_filter, wave_template, f_template):
     return mag_AB
 
 
-def get_correction(wave_template, flux_template, wave_B, trans_B, mag_B, err_B,
-                   wave_V, trans_V, mag_V, err_V):
-    obs_B = photometry(wave_B, trans_B, wave_template, flux_template)
-    correc_B = 10**(-0.4*(mag_B-obs_B))
+def get_correction(wave_template, flux_template, wave_V, trans_V, mag_V):
     obs_V = photometry(wave_V, trans_V, wave_template, flux_template)
-    correc_V = 10**(-0.4*(mag_V-obs_V))
-
-    if mag_V==99:
-        correction = correc_B
-    else:
-        correction = correc_V
-
+    correction = 10**(-0.4*(mag_V-obs_V))
+    
     return correction
 
 
@@ -225,7 +221,7 @@ def save_template(filename, wave, flux, chi_square, spectral, output_dir):
 
 
 def correct_template(starnames, starfibers, pickles_path, magnitudes_fname,
-                     wave_B, trans_B, wave_V, trans_V, standard_path):
+                     wave_V, trans_V, standard_path):
     for i in range(len(starfibers)):
         sys.stdout.write('\rCorrecting best templates by input magnitude: ' +
                          str(i+1) + '/' + str(len(starfibers)))
@@ -239,7 +235,7 @@ def correct_template(starnames, starfibers, pickles_path, magnitudes_fname,
                                     dtype=str)[:, 1]
         chi_squares = chi_squares.astype(float)
 
-        mag_B, err_B, mag_V, err_V = extract_mag(magnitudes_fname,
+        mag_V, err_V = extract_mag(magnitudes_fname,
                                                  starnames[i])
         for j in range(len(stypes)):
             stype = stypes[j]
@@ -247,9 +243,8 @@ def correct_template(starnames, starfibers, pickles_path, magnitudes_fname,
             temp = np.genfromtxt(temp_path, comments='#')
             wave_temp = temp[:, 0]
             flux_temp = temp[:, 1]
-            correction = get_correction(wave_temp, flux_temp, wave_B, trans_B,
-                                        mag_B, err_B, wave_V, trans_V, mag_V,
-                                        err_V)
+            correction = get_correction(wave_temp, flux_temp,
+                                        wave_V, trans_V, mag_V)
             flux_temp_c = flux_temp*correction
             save_template(str(fiber) + '_' + stype, wave_temp, flux_temp_c,
                           chi_squares[j], stype,
@@ -263,6 +258,8 @@ def standard_template(science, fibermap_fname, assets_dir,
                       dlmask=20, bound=100, num_selections=50):
     starnames, starfibers = fibermap.fibers_id('C', spectro,
                                                     fibermap_fname)
+    starnames, starfibers = select_stars(starnames, starfibers,
+                                         magnitudes_fname)
 #   Load list and paths (templates and filters)
     templates = np.genfromtxt(os.path.join(assets_dir, 'pickles.dat'),
                               dtype=str)
@@ -271,7 +268,7 @@ def standard_template(science, fibermap_fname, assets_dir,
     curves_path = os.path.join(assets_dir, 'Curves')
 
 #   Load transmission curves
-    wave_B, trans_B, wave_V, trans_V = load_filters(curves, curves_path)
+    wave_V, trans_V = load_filters(curves, curves_path)
 
 #   Create temporal directory
     science_name = os.path.basename(science)
@@ -293,4 +290,4 @@ def standard_template(science, fibermap_fname, assets_dir,
                       num_selections=num_selections)
 #   Correct the better templates by the input magnitudes of the stars
     correct_template(starnames, starfibers, pickles_path, magnitudes_fname,
-                     wave_B, trans_B, wave_V, trans_V, temporal_path)
+                     wave_V, trans_V, temporal_path)

@@ -5,8 +5,10 @@ import scipy.interpolate as inter
 import scipy.signal as sig
 import matplotlib.pyplot as plt
 from astropy.io import fits
+
 from m2fs_pipeline import fibermap
 from m2fs_pipeline import extinction
+from m2fs_pipeline import standard
 
 
 def gaussian(x, a0, a1, a2):
@@ -115,7 +117,7 @@ def fluxcalib(std1d, stderr1d, wave1d, hdr, filename, calibfile):
 
 
 def flux_calibration(science, fibermap_fname,
-                     sens_fname, output_dir, sigma1=2.,
+                     sens_fname, magnitudes_fname, output_dir, sigma1=2.,
                      sigma0=10., starfibers=np.array([]), spectro='b',
                      field='COSMOS', interactive=False):
     aux = fits.open(science)
@@ -129,7 +131,9 @@ def flux_calibration(science, fibermap_fname,
     counter = 0
 
     if (len(starfibers)==0):
-        aux, starfibers = fibermap.fibers_id('C', spectro, fibermap_fname)
+        snames, starfibers = fibermap.fibers_id('C', spectro, fibermap_fname)
+        snames, starfibers = standard.select_stars(snames, starfibers,
+                                                   magnitudes_fname)
     
     science_name = os.path.basename(science)[0:5]
     standard_path = os.path.join(output_dir, science_name + '_standard_templates')

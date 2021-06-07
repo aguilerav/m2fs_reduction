@@ -1,19 +1,5 @@
 import os
 import numpy as np
-# from m2fs_pipeline import template
-
-
-def closest_detection(array1, array2):
-    """
-    Obtain difference between every value in array1 and closest value in array2.
-    """
-    aux = np.zeros(len(array1))
-
-    for i in range(len(aux)):
-        value = abs(array1[i] - array2)
-        aux[i] = np.amin(value)
-    
-    return aux
 
 
 def nan_filler(array, close_distance, long_distance, total_length):
