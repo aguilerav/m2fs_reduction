@@ -3,7 +3,14 @@
 
 Michigan/Magellan Fiber System (M2FS) reduction pipeline
 
-Under development
+Steps:
+* Bias/Trim/Gain/Dark correction/Cosmic rejection
+* Tracing
+* Wavelength calibration
+* Flatfield
+* Sky substraction
+* Flux calibration
+* Merge observations
 
 # Author
 
@@ -14,9 +21,8 @@ Code adapted from G. Blanc
 
 # How to
 
-Run the following command in shell
+Run the following command in shell to set up the environment:
 
 python setup.py develop
 
-
-
+Under development run commands
