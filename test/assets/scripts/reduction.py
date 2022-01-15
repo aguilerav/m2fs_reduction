@@ -30,7 +30,7 @@ inputs_dir = os.path.join(os.path.dirname(os.path.dirname(_assets_dir)),
 
 #INPUTS
 spectro = 'b'
-obj = 'COSMOS_C'
+obj = 'COSMOS_S'
 if obj=='COSMOS_S':
     sciences = ['1376', '1377', '1382', '1383', '1388']
     thar_lamps = ['1373', '1380', '1384', '1389']
@@ -49,20 +49,20 @@ if obj=='COSMOS_C':
                  '172', '173']
 
 #FUNCTIONS
-do_basic = True
-do_combine_led = True
-do_trace = True
-do_combine_lamps = True
-do_wavecalib = True
-do_combine_twilight = True
-do_flat = True
-do_skysub = True
-do_collapse = True
-do_template = True
-do_sensitivity = True
-do_fluxcalib = True
+do_basic = 1
+do_combine_led = 1
+do_trace = 1
+do_combine_lamps = 1
+do_wavecalib = 1
+do_combine_twilight = 1
+do_flat = 1
+do_skysub = 1
+do_collapse = 1
+do_template = 1
+do_sensitivity = 1
+do_fluxcalib = 1
 
-do_combine = True
+do_combine = 1
 
 #-----------------------REDUCTION-----------------------------
 raw_sciences = ['']*len(sciences)
@@ -241,7 +241,8 @@ if do_fluxcalib:
         print('Flux calibration science: ' + str(i+1) + '/' +
               str(len(sciences_sc)))
         fluxcalib.flux_calibration(sciences_sc[i], fibermap_fname, sens_fname,
-                                   magnitudes_fname, _output_dir)
+                                   magnitudes_fname, _output_dir,
+                                   spectro=spectro)
     print('------------------FINISHED FLUX CALIBRATION--------------------')
 
 sciences_a = ['']*len(sciences)
