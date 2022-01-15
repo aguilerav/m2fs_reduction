@@ -1,6 +1,11 @@
 import os
 import numpy as np
 
+"""
+This script makes the fiber mapping (taking into acount that some fibers are
+dead).
+"""
+
 
 def nan_filler(array, close_distance, long_distance, total_length):
     """
@@ -141,9 +146,9 @@ def fibermap_info(fiber, spectro, fibermap_fname):
         fiberblock = int(np.floor(fiber/16)) + 1
         fibernumber = 16-(fiber - 16*(fiberblock-1))
         if fibernumber >= 10:
-            fibernumber = str(fibernumber)
+            fibernumber = str(int(fibernumber))
         else:
-            fibernumber = '0' + str(fibernumber)
+            fibernumber = '0' + str(int(fibernumber))
         fiber_idx = 'B' + str(fiberblock) + '-' + fibernumber
         fiber_name = names[fiber_idx == idx][0]
         return  fiber_idx, fiber_name
@@ -151,9 +156,9 @@ def fibermap_info(fiber, spectro, fibermap_fname):
         fiberblock = 8 - int(np.floor(fiber/16))
         fibernumber = 16 - (fiber - 16*(8 - fiberblock))
         if fibernumber >= 10:
-            fibernumber = str(fibernumber)
+            fibernumber = str(int(fibernumber))
         else:
-            fibernumber = '0' + str(fibernumber)
+            fibernumber = '0' + str(int(fibernumber))
         fiber_idx = 'R' + str(fiberblock) + '-' + fibernumber
         fiber_name = names[fiber_idx == idx][0]
         return fiber_idx, fiber_name
@@ -205,3 +210,4 @@ def fibers_id(char, spectro, fibermap_fname):
     fibernames = fibernames[sorting]
 
     return fibernames, fibernumbers
+

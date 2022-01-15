@@ -10,6 +10,12 @@ from m2fs_pipeline import extract
 from m2fs_pipeline import tracer
 from m2fs_pipeline import wavecalib
 
+"""
+This script makes the flat fielding.
+It uses observations from twiligth.
+The output is a new science image flatfielded.
+"""
+
 
 def normalize(arr, arr_err, kernel_size=35):
     nfibers, ncols = arr.shape

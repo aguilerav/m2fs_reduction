@@ -5,6 +5,11 @@ from astropy.io import fits
 from scipy.signal import find_peaks
 from scipy.optimize import curve_fit
 
+"""
+This script trace the fibers in the spectrograph.
+Final output are the polynomial coefficients to follow the fibers.
+"""
+
 
 def median_nwidth_cols(arr, center_col, ncols_each_side=1):
     """

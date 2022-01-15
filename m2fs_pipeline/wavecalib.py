@@ -9,6 +9,15 @@ from scipy.signal import correlate
 from m2fs_pipeline import extract
 from m2fs_pipeline import tracer
 
+"""
+This script makes the wavelength calibration.
+It need the observation of two arc lamps (ThAr and NeHgArXe).
+The routine is to make two different fits. First for the NeHgArXe lamp and then
+it mix both lamps and it calibrates again.
+The output is a file that contains the polynomial coefficients of the
+calibration.
+"""
+
 
 def get_1Dspectrum(arr, tracing, fiber, apsize=4, method='biweight'):
     """

@@ -9,6 +9,12 @@ from astropy import constants as const
 
 from m2fs_pipeline import fibermap
 
+"""
+This script generates the template for flux calibration.
+It needs the magnitude of the observed stars (match by id) and the path
+for the Picles templates.
+"""
+
 
 def extract_mag(magnitudes_fname, starname):
     mags = np.genfromtxt(magnitudes_fname, dtype=str)

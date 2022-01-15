@@ -9,6 +9,11 @@ from astropy.io import fits
 from m2fs_pipeline import fibermap
 from m2fs_pipeline import standard
 
+"""
+This script calculates the sensitivity curves for the flux calibration for
+each science observation.
+"""
+
 def gaussian(x, a0, a1, a2):
     z = (x-a1)/a2
     g = a0*np.exp((-z**2)/2)

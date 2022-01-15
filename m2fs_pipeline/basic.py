@@ -5,6 +5,14 @@ from astropy.io import fits
 
 from m2fs_pipeline import cosmics
 
+"""
+This script makes the first steps in the reduction.
+- Bias
+- Trim
+- Gain correction
+- Cosmis rays rejection
+"""
+
 
 def str_slice_to_corners(str_section):
     """

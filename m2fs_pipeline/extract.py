@@ -6,6 +6,12 @@ from astropy.io import fits
 from m2fs_pipeline import tracer
 from m2fs_pipeline import wavecalib
 
+"""
+This is an auxiliary script that makes the extractions.
+- Extract fibers
+- Collapse fibers
+"""
+
 
 def extract1D(data_array, tracefile, nfiber, error_array = 'error',
               yaper=4, method='sum', output=0):

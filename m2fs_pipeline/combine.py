@@ -8,6 +8,12 @@ from astropy.stats import biweight
 from m2fs_pipeline import fibermap
 from m2fs_pipeline import sensitivity
 
+"""
+This auxiliary script makes the needed combinations
+- Pixel by pixel
+- Science combination
+"""
+
 
 # IMAGE COMBINATION ROUTINE (PIXEL BY PIXEL)
 def combine(files, filename, output_dir, exptime=1, thresh=30000):

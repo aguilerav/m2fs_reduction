@@ -10,6 +10,11 @@ from m2fs_pipeline import fibermap
 from m2fs_pipeline import extinction
 from m2fs_pipeline import standard
 
+"""
+This script makes the flux calibration.
+It needs the sensitivity curves.
+"""
+
 
 def gaussian(x, a0, a1, a2):
     z = (x-a1)/a2

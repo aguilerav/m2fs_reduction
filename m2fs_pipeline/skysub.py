@@ -13,6 +13,12 @@ from m2fs_pipeline import fibermap
 from m2fs_pipeline import tracer
 from m2fs_pipeline import wavecalib
 
+"""
+This script makes the sky substraction.
+The output is a new science image where the sky is substracted.
+It needs the fibermap of the fibers to identify the sky fibers.
+"""
+
 
 def gaussian(x, a, b, c, d):
     return a*np.exp(-(x-b)**2/(2*c**2))+d
